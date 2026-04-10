@@ -193,11 +193,12 @@ async function saveMemo() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ memo: newMemo })
     });
-    if (!res.ok) throw new Error('保存失敗');
+    const resData = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(resData.error || `HTTP ${res.status}`);
     btn.textContent = '✅ 保存しました';
     await renderSavedMemos();
-  } catch {
-    alert('保存に失敗しました。もう一度お試しください。');
+  } catch (e) {
+    alert('保存に失敗しました: ' + e.message);
     btn.textContent = '💾 メモを保存';
   } finally {
     btn.disabled = false;
