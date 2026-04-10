@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('retryBtn').addEventListener('click', resetForm);
   document.getElementById('saveMemoBtn').addEventListener('click', saveMemo);
   document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
+  document.getElementById('refreshBtn').addEventListener('click', refreshAll);
   renderSavedMemos();
   renderSavedDrafts();
 });
@@ -538,4 +539,17 @@ function resetForm() {
   hideError();
   currentDraftText = '';
   document.getElementById('memo').scrollIntoView({ behavior: 'smooth' });
+}
+
+// --- 手動更新 ---
+async function refreshAll() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  try {
+    await Promise.all([renderSavedMemos(), renderSavedDrafts()]);
+  } finally {
+    btn.classList.remove('spinning');
+    btn.disabled = false;
+  }
 }
