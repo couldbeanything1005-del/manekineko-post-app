@@ -402,6 +402,13 @@ textarea::placeholder {
   padding: 16px 0;
 }
 
+.memo-loading {
+  text-align: center;
+  color: var(--text-light);
+  font-size: 13px;
+  padding: 16px 0;
+}
+
 /* Generate button */
 .btn-generate {
   width: 100%;

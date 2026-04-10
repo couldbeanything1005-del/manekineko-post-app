@@ -1,5 +1,8 @@
 {
   "name": "manekineko-post-app",
   "version": "1.0.0",
-  "description": "Instagram投稿下書き作成アプリ - 福祉タクシーまねきねこ"
+  "description": "Instagram投稿下書き作成アプリ - 福祉タクシーまねきねこ",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
 }

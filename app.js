@@ -2,6 +2,7 @@
 let selectedPostType = 'diary';
 const MAX_IMAGES = 5;
 let selectedImages = []; // [{ base64, mediaType, dataUrl }]
+let cachedMemos = [];    // サーバーから取得したメモのキャッシュ
 
 // --- 初期化 ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -120,52 +121,85 @@ function initMemoCounter() {
   });
 }
 
-// --- メモ保存 ---
-function saveMemo() {
-  const memo = document.getElementById('memo').value.trim();
-  if (!memo) {
+// --- メモ保存（サーバー） ---
+async function saveMemo() {
+  const memoText = document.getElementById('memo').value.trim();
+  if (!memoText) {
     alert('メモを入力してください。');
     return;
   }
 
-  const saved = getSavedMemos();
+  const btn = document.getElementById('saveMemoBtn');
+  btn.textContent = '保存中...';
+  btn.disabled = true;
+
   const newMemo = {
     id: Date.now(),
-    text: memo,
+    text: memoText,
     type: selectedPostType,
     date: new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
   };
-  saved.unshift(newMemo);
-  localStorage.setItem('manekineko_memos', JSON.stringify(saved));
-  renderSavedMemos();
 
-  const btn = document.getElementById('saveMemoBtn');
-  btn.textContent = '✅ 保存しました';
-  setTimeout(() => { btn.textContent = '💾 メモを保存'; }, 2000);
+  try {
+    const res = await fetch('/api/memos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memo: newMemo })
+    });
+    if (!res.ok) throw new Error('保存失敗');
+    btn.textContent = '✅ 保存しました';
+    await renderSavedMemos();
+  } catch {
+    alert('保存に失敗しました。もう一度お試しください。');
+    btn.textContent = '💾 メモを保存';
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '💾 メモを保存'; }, 2000);
+  }
 }
 
-// --- 保存済みメモ取得 ---
-function getSavedMemos() {
-  try {
-    return JSON.parse(localStorage.getItem('manekineko_memos') || '[]');
-  } catch {
-    return [];
-  }
+// --- メモ一覧をサーバーから取得 ---
+async function fetchSavedMemos() {
+  const res = await fetch('/api/memos');
+  if (!res.ok) throw new Error('取得失敗');
+  return await res.json();
 }
 
 // --- 保存済みメモ表示 ---
-function renderSavedMemos() {
-  const saved = getSavedMemos();
+async function renderSavedMemos() {
   const card = document.getElementById('savedMemosCard');
   const list = document.getElementById('savedMemosList');
 
-  if (saved.length === 0) {
-    card.classList.remove('show');
-    return;
+  // まずキャッシュがあれば即表示
+  if (cachedMemos.length > 0) {
+    card.classList.add('show');
+    list.innerHTML = buildMemoListHtml(cachedMemos);
+  } else {
+    card.classList.add('show');
+    list.innerHTML = '<div class="memo-loading">読み込み中...</div>';
   }
 
-  card.classList.add('show');
-  list.innerHTML = saved.map(memo => `
+  try {
+    const memos = await fetchSavedMemos();
+    cachedMemos = memos;
+
+    if (memos.length === 0) {
+      card.classList.remove('show');
+      return;
+    }
+
+    card.classList.add('show');
+    list.innerHTML = buildMemoListHtml(memos);
+  } catch {
+    // サーバー取得失敗時はキャッシュのまま表示
+    if (cachedMemos.length === 0) {
+      card.classList.remove('show');
+    }
+  }
+}
+
+function buildMemoListHtml(memos) {
+  return memos.map(memo => `
     <div class="memo-item" data-id="${memo.id}">
       <div class="memo-item-header">
         <span class="memo-item-date">${memo.date}</span>
@@ -182,8 +216,7 @@ function renderSavedMemos() {
 
 // --- メモ読み込み ---
 function loadMemo(id) {
-  const saved = getSavedMemos();
-  const memo = saved.find(m => m.id === id);
+  const memo = cachedMemos.find(m => m.id === id);
   if (!memo) return;
 
   document.getElementById('memo').value = memo.text;
@@ -200,12 +233,21 @@ function loadMemo(id) {
   document.getElementById('memo').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-// --- メモ削除 ---
-function deleteMemo(id) {
+// --- メモ削除（サーバー） ---
+async function deleteMemo(id) {
   if (!confirm('このメモを削除しますか？')) return;
-  const saved = getSavedMemos().filter(m => m.id !== id);
-  localStorage.setItem('manekineko_memos', JSON.stringify(saved));
-  renderSavedMemos();
+
+  try {
+    const res = await fetch('/api/memos', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if (!res.ok) throw new Error('削除失敗');
+    await renderSavedMemos();
+  } catch {
+    alert('削除に失敗しました。もう一度お試しください。');
+  }
 }
 
 // --- 画像リサイズ（Instagram最適化） ---
@@ -214,13 +256,11 @@ const INSTA_QUALITY = 0.85;
 
 function resizeImageForInstagram(img) {
   let { width, height } = img;
-  let wasResized = false;
 
   if (width > INSTA_MAX_SIZE || height > INSTA_MAX_SIZE) {
     const ratio = Math.min(INSTA_MAX_SIZE / width, INSTA_MAX_SIZE / height);
     width = Math.round(width * ratio);
     height = Math.round(height * ratio);
-    wasResized = true;
   }
 
   const canvas = document.createElement('canvas');
@@ -230,11 +270,8 @@ function resizeImageForInstagram(img) {
   ctx.drawImage(img, 0, 0, width, height);
 
   const dataUrl = canvas.toDataURL('image/jpeg', INSTA_QUALITY);
-  const sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
-
-  return { dataUrl, width, height, wasResized, sizeKB };
+  return { dataUrl, width, height };
 }
-
 
 // --- HTMLエスケープ ---
 function escapeHtml(str) {
