@@ -133,76 +133,127 @@ ${HASHTAGS.service}
 「頼んでいいのかな…」って思ったときが、ご連絡のタイミングです。
 まずはLINEでお気軽にどうぞ😊`;
 
+// 季節・イベント判定
+function getSeasonalContext() {
+  const month = new Date().getMonth() + 1;
+  const contexts = {
+    1:  '1月・お正月・新年・寒い時期・初詣・成人式',
+    2:  '2月・節分・バレンタイン・寒い時期・インフルエンザ流行期',
+    3:  '3月・卒業式・年度末・春の訪れ・花粉症シーズン',
+    4:  '4月・新年度・入学式・お花見・桜・ゴールデンウィーク準備',
+    5:  '5月・ゴールデンウィーク・こどもの日・母の日・初夏',
+    6:  '6月・梅雨・父の日・外出しにくい季節',
+    7:  '7月・夏・七夕・熱中症対策・お出かけシーズン',
+    8:  '8月・お盆・夏祭り・猛暑・熱中症注意',
+    9:  '9月・敬老の日・お彼岸・秋の始まり・運動会シーズン',
+    10: '10月・秋・ハロウィン・紅葉・行楽シーズン',
+    11: '11月・七五三・紅葉・年末準備・寒くなってきた',
+    12: '12月・クリスマス・年末・大掃除・忘年会',
+  };
+  return contexts[month] || '';
+}
+
+async function callClaude(systemPrompt, userText, maxTokens = 1500) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userText }]
+    })
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`API Error: ${err}`);
+  }
+  const data = await response.json();
+  return data.content[0].text;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   }
 
-  try {
-    const { memo, postType, images, imageBase64, imageMediaType } = JSON.parse(event.body);
+  const headers = { 'Content-Type': 'application/json; charset=utf-8' };
 
+  try {
+    const body = JSON.parse(event.body);
+    const { mode, postType, memo, images, imageBase64, imageMediaType, currentDraft, toneInstruction } = body;
+
+    // ① トーン調整モード
+    if (mode === 'tone') {
+      if (!currentDraft || !toneInstruction) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: '下書きと調整指示が必要です' }) };
+      }
+      const system = `あなたは福祉タクシーまねきねこのInstagram投稿文を調整するアシスタントです。
+指示に従って文章のトーンや長さを調整してください。
+フッターと最後のハッシュタグ行はそのまま保持してください。本文部分だけを調整してください。`;
+      const result = await callClaude(system, `以下の投稿文を「${toneInstruction}」という指示に従って調整してください。\n\n${currentDraft}`);
+      return { statusCode: 200, headers, body: JSON.stringify({ draft: result }) };
+    }
+
+    // ② ハッシュタグ生成モード
+    if (mode === 'hashtags') {
+      if (!memo) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'メモが必要です' }) };
+      }
+      const hashtags = HASHTAGS[postType] || HASHTAGS.diary;
+      const system = `あなたはInstagramのハッシュタグ専門家です。
+福祉タクシー・介護・外出支援に関するアカウント向けに、投稿内容に合ったハッシュタグを追加で提案してください。
+以下の固定ハッシュタグに加えて、内容に合った追加ハッシュタグを5〜10個提案してください。
+固定タグ: ${hashtags}
+出力形式: ハッシュタグのみを並べてください（説明文不要）`;
+      const result = await callClaude(system, `この投稿内容に合うハッシュタグを提案してください。\n\nメモ: ${memo}`, 500);
+      return { statusCode: 200, headers, body: JSON.stringify({ hashtags: result }) };
+    }
+
+    // ③ 季節の投稿提案モード
+    if (mode === 'seasonal') {
+      const season = getSeasonalContext();
+      const system = `あなたは福祉タクシーまねきねこのInstagram投稿アイデアを提案するアシスタントです。
+サービス：愛知県瀬戸市の福祉タクシー（通院・買い物・外出の送迎＋付き添い）
+季節・時期に合わせた投稿アイデアを3つ提案してください。
+
+出力形式（必ず守る）：
+1. 【タイトル】\n内容の一行説明
+2. 【タイトル】\n内容の一行説明
+3. 【タイトル】\n内容の一行説明`;
+      const result = await callClaude(system, `今の時期（${season}）に合った投稿アイデアを3つ提案してください。`, 600);
+      return { statusCode: 200, headers, body: JSON.stringify({ suggestions: result }) };
+    }
+
+    // ④ 通常の下書き生成モード
     if (!memo) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'メモが入力されていません' }) };
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'メモが入力されていません' }) };
     }
 
     const systemPrompt = postType === 'diary' ? SYSTEM_DIARY : SYSTEM_SERVICE;
-
     const userContent = [];
 
-    // 複数画像対応（後方互換: 旧形式の単一画像もサポート）
     if (images && images.length > 0) {
       for (const img of images) {
-        userContent.push({
-          type: 'image',
-          source: { type: 'base64', media_type: img.mediaType, data: img.base64 }
-        });
+        userContent.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.base64 } });
       }
     } else if (imageBase64 && imageMediaType) {
-      userContent.push({
-        type: 'image',
-        source: { type: 'base64', media_type: imageMediaType, data: imageBase64 }
-      });
+      userContent.push({ type: 'image', source: { type: 'base64', media_type: imageMediaType, data: imageBase64 } });
     }
-
     userContent.push({
       type: 'text',
-      text: `以下のメモをもとにInstagram投稿の下書きを作成してください。\n\nメモ：${memo}\n\n【重要】上記のスタイルガイドを厳守し、フッターとハッシュタグは必ず末尾に付けてください。`
+      text: `以下のメモをもとにInstagram投稿の下書きを作成してください。\n\nメモ：${memo}\n\n【重要】フッターとハッシュタグは必ず末尾に付けてください。`
     });
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1500,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userContent }]
-      })
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error('Anthropic API error:', err);
-      return { statusCode: 500, body: JSON.stringify({ error: `API Error: ${err}` }) };
-    }
-
-    const data = await response.json();
-
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify({ draft: data.content[0].text })
-    };
+    const result = await callClaude(systemPrompt, userContent, 1500);
+    return { statusCode: 200, headers, body: JSON.stringify({ draft: result }) };
 
   } catch (error) {
     console.error('Error:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: '下書きの生成に失敗しました。もう一度お試しください。' })
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message || '生成に失敗しました。' }) };
   }
 };

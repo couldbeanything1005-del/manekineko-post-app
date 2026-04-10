@@ -26,6 +26,15 @@
 
   <main>
 
+    <!-- 季節の投稿提案 -->
+    <div class="card seasonal-card">
+      <div class="seasonal-header">
+        <h2>🌸 季節の投稿アイデア</h2>
+        <button class="btn-seasonal" id="seasonalBtn">アイデアを見る</button>
+      </div>
+      <div class="seasonal-result" id="seasonalResult"></div>
+    </div>
+
     <!-- STEP 1: 投稿タイプ -->
     <div class="card">
       <h2>📌 STEP 1｜投稿の種類を選ぶ</h2>
@@ -98,9 +107,30 @@
       <!-- 表示モード -->
       <div id="draftViewMode">
         <div class="draft-text" id="draftText"></div>
+
+        <!-- トーン調整 -->
+        <div class="tone-section">
+          <p class="tone-label">トーンを調整する</p>
+          <div class="tone-btns">
+            <button class="btn-tone" data-tone="もっとやわらかく・親しみやすく">😊 やわらかく</button>
+            <button class="btn-tone" data-tone="もっと短くコンパクトに（100文字以内の本文に）">✂️ 短く</button>
+            <button class="btn-tone" data-tone="もっと長く・具体的なエピソードを加えて">📝 長く</button>
+            <button class="btn-tone" data-tone="もっとポップで明るいトーンに">🎉 ポップに</button>
+          </div>
+          <div class="tone-loading" id="toneLoading" style="display:none">調整中...</div>
+        </div>
+
         <div class="result-actions">
           <button class="btn-edit-draft" id="editDraftBtn">✏️ 編集する</button>
           <button class="btn-copy" id="copyBtn">📋 コピーする</button>
+        </div>
+        <div class="result-actions" style="margin-top: 8px;">
+          <button class="btn-hashtag" id="hashtagBtn">＃ ハッシュタグを生成</button>
+          <button class="btn-instagram" id="instagramBtn">📸 Instagramで開く</button>
+        </div>
+        <div class="hashtag-result" id="hashtagResult" style="display:none">
+          <div class="hashtag-text" id="hashtagText"></div>
+          <button class="btn-copy-hashtag" id="copyHashtagBtn">📋 ハッシュタグをコピー</button>
         </div>
         <div class="result-actions" style="margin-top: 8px;">
           <button class="btn-save-draft" id="saveDraftBtn">💾 下書きを保存する</button>

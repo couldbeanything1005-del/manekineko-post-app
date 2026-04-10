@@ -18,6 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('saveMemoBtn').addEventListener('click', saveMemo);
   document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
   document.getElementById('refreshBtn').addEventListener('click', refreshAll);
+  document.getElementById('hashtagBtn').addEventListener('click', generateHashtags);
+  document.getElementById('copyHashtagBtn').addEventListener('click', copyHashtags);
+  document.getElementById('instagramBtn').addEventListener('click', openInstagram);
+  document.getElementById('seasonalBtn').addEventListener('click', generateSeasonalIdeas);
+  document.querySelectorAll('.btn-tone').forEach(btn => {
+    btn.addEventListener('click', () => adjustTone(btn.dataset.tone));
+  });
   renderSavedMemos();
   renderSavedDrafts();
 });
@@ -364,10 +371,25 @@ function buildDraftListHtml(drafts) {
       <div class="memo-item-text">${escapeHtml(draft.text)}</div>
       <div class="memo-item-actions">
         <button class="btn-load-memo" onclick="copyDraftFromList(${draft.id})">📋 コピー</button>
+        <button class="btn-instagram-list" onclick="openInstagramFromList(${draft.id})">📸 Instagram</button>
         <button class="btn-delete-memo" onclick="deleteDraft(${draft.id})">🗑 削除</button>
       </div>
     </div>
   `).join('');
+}
+
+async function openInstagramFromList(id) {
+  const draft = cachedDrafts.find(d => d.id === id);
+  if (!draft) return;
+  try { await navigator.clipboard.writeText(draft.text); } catch {}
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  if (isIOS || isAndroid) {
+    window.location.href = 'instagram://';
+    setTimeout(() => { window.open('https://www.instagram.com/', '_blank'); }, 1500);
+  } else {
+    window.open('https://www.instagram.com/', '_blank');
+  }
 }
 
 async function copyDraftFromList(id) {
@@ -538,7 +560,148 @@ function resetForm() {
   hideResult();
   hideError();
   currentDraftText = '';
+  document.getElementById('hashtagResult').style.display = 'none';
   document.getElementById('memo').scrollIntoView({ behavior: 'smooth' });
+}
+
+// =============================================
+// トーン調整
+// =============================================
+
+async function adjustTone(toneInstruction) {
+  if (!currentDraftText) return;
+
+  const loadingEl = document.getElementById('toneLoading');
+  const btns = document.querySelectorAll('.btn-tone');
+  loadingEl.style.display = 'block';
+  btns.forEach(b => b.disabled = true);
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'tone', currentDraft: currentDraftText, toneInstruction })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    currentDraftText = data.draft;
+    document.getElementById('draftText').textContent = data.draft;
+  } catch (e) {
+    alert('調整に失敗しました: ' + e.message);
+  } finally {
+    loadingEl.style.display = 'none';
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+// =============================================
+// ハッシュタグ生成
+// =============================================
+
+async function generateHashtags() {
+  const memo = document.getElementById('memo').value.trim();
+  const btn = document.getElementById('hashtagBtn');
+  btn.textContent = '生成中...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'hashtags', postType: selectedPostType, memo: memo || 'まねきねこ 福祉タクシー' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    document.getElementById('hashtagText').textContent = data.hashtags;
+    document.getElementById('hashtagResult').style.display = 'block';
+  } catch (e) {
+    alert('ハッシュタグの生成に失敗しました: ' + e.message);
+  } finally {
+    btn.textContent = '＃ ハッシュタグを生成';
+    btn.disabled = false;
+  }
+}
+
+async function copyHashtags() {
+  const text = document.getElementById('hashtagText').textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copyHashtagBtn');
+    btn.textContent = '✅ コピーしました！';
+    setTimeout(() => { btn.textContent = '📋 ハッシュタグをコピー'; }, 2000);
+  } catch {
+    alert('コピーできませんでした。');
+  }
+}
+
+// =============================================
+// Instagramで開く
+// =============================================
+
+async function openInstagram() {
+  if (currentDraftText) {
+    try {
+      await navigator.clipboard.writeText(currentDraftText);
+    } catch {}
+  }
+  // モバイルはアプリへ、PCはWebへ
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  if (isIOS || isAndroid) {
+    window.location.href = 'instagram://';
+    setTimeout(() => { window.open('https://www.instagram.com/', '_blank'); }, 1500);
+  } else {
+    window.open('https://www.instagram.com/', '_blank');
+  }
+  const btn = document.getElementById('instagramBtn');
+  btn.textContent = '✅ テキストをコピーしました！';
+  setTimeout(() => { btn.textContent = '📸 Instagramで開く'; }, 2500);
+}
+
+// =============================================
+// 季節の投稿アイデア
+// =============================================
+
+async function generateSeasonalIdeas() {
+  const btn = document.getElementById('seasonalBtn');
+  const resultEl = document.getElementById('seasonalResult');
+  btn.textContent = '生成中...';
+  btn.disabled = true;
+  resultEl.innerHTML = '<div class="seasonal-loading">アイデアを考えています...</div>';
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'seasonal' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    const items = data.suggestions.split(/\n(?=\d\.)/).filter(s => s.trim());
+    resultEl.innerHTML = items.map(item => {
+      const match = item.match(/【(.+?)】\n?(.*)/s);
+      const title = match ? match[1] : item;
+      const desc = match ? match[2].trim() : '';
+      return `
+        <div class="seasonal-item">
+          <div class="seasonal-item-title">【${title}】</div>
+          <div class="seasonal-item-desc">${escapeHtml(desc)}</div>
+          <button class="btn-use-idea" onclick="useSeasonalIdea('${escapeHtml(desc || title).replace(/'/g, "\\'")}')">このアイデアを使う</button>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    resultEl.innerHTML = `<div style="color:#c62828;font-size:13px">取得に失敗しました: ${e.message}</div>`;
+  } finally {
+    btn.textContent = 'アイデアを見る';
+    btn.disabled = false;
+  }
+}
+
+function useSeasonalIdea(text) {
+  document.getElementById('memo').value = text;
+  document.getElementById('charCounter').textContent = `${text.length}文字`;
+  document.getElementById('memo').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // --- 手動更新 ---

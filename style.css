@@ -700,6 +700,200 @@ textarea::placeholder {
   display: block;
 }
 
+/* 季節の投稿アイデア */
+.seasonal-card { margin-bottom: 0; }
+
+.seasonal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.seasonal-header h2 { margin: 0; }
+
+.btn-seasonal {
+  padding: 8px 16px;
+  background: #f3e5f5;
+  color: #7b1fa2;
+  border: 1.5px solid #ce93d8;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.btn-seasonal:hover:not(:disabled) { background: #e1bee7; }
+.btn-seasonal:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.seasonal-result { margin-top: 12px; }
+
+.seasonal-loading {
+  text-align: center;
+  color: var(--text-light);
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+.seasonal-item {
+  background: #faf5ff;
+  border: 1px solid #e1bee7;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.seasonal-item-title {
+  font-weight: bold;
+  font-size: 14px;
+  color: #6a1b9a;
+  margin-bottom: 4px;
+}
+
+.seasonal-item-desc {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.btn-use-idea {
+  padding: 6px 14px;
+  background: #7b1fa2;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-use-idea:hover { background: #6a1b9a; }
+
+/* トーン調整 */
+.tone-section {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 12px 0;
+}
+
+.tone-label {
+  font-size: 12px;
+  color: var(--text-light);
+  margin: 0 0 8px 0;
+}
+
+.tone-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn-tone {
+  padding: 7px 14px;
+  background: white;
+  color: #1976d2;
+  border: 1.5px solid #90caf9;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-tone:hover:not(:disabled) { background: #e3f2fd; }
+.btn-tone:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.tone-loading {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* ハッシュタグ生成ボタン */
+.btn-hashtag {
+  padding: 12px;
+  background: white;
+  color: #388e3c;
+  border: 2px solid #a5d6a7;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-hashtag:hover:not(:disabled) { background: #f1f8e9; }
+.btn-hashtag:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Instagramボタン */
+.btn-instagram {
+  padding: 12px;
+  background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-instagram:hover { opacity: 0.88; }
+
+/* ハッシュタグ結果 */
+.hashtag-result {
+  background: #f1f8e9;
+  border: 1px solid #a5d6a7;
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.hashtag-text {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #2e7d32;
+  word-break: break-word;
+  margin-bottom: 8px;
+}
+
+.btn-copy-hashtag {
+  padding: 8px 16px;
+  background: #388e3c;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-copy-hashtag:hover { background: #2e7d32; }
+
+/* 下書き一覧のInstagramボタン */
+.btn-instagram-list {
+  padding: 6px 10px;
+  background: linear-gradient(135deg, #f09433, #dc2743, #bc1888);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
 /* Error */
 .error-msg {
   background: #fdecea;
