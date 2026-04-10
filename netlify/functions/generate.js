@@ -175,7 +175,7 @@ exports.handler = async (event) => {
     if (!response.ok) {
       const err = await response.text();
       console.error('Anthropic API error:', err);
-      return { statusCode: 500, body: JSON.stringify({ error: 'API呼び出しに失敗しました' }) };
+      return { statusCode: 500, body: JSON.stringify({ error: `API Error: ${err}` }) };
     }
 
     const data = await response.json();
