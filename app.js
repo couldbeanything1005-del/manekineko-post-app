@@ -1,7 +1,7 @@
 // --- 状態管理 ---
 let selectedPostType = 'diary';
-let selectedImageBase64 = null;
-let selectedImageMediaType = null;
+const MAX_IMAGES = 5;
+let selectedImages = []; // [{ base64, mediaType, dataUrl }]
 
 // --- 初期化 ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -28,42 +28,87 @@ function initTypeSelector() {
   document.querySelector('[data-type="diary"]').classList.add('selected');
 }
 
-// --- 画像選択 ---
+// --- 画像選択（複数枚対応） ---
 function initImagePicker() {
   const fileInput = document.getElementById('imageInput');
-  const preview = document.getElementById('imagePreview');
-  const previewImg = document.getElementById('previewImg');
-  const removeBtn = document.getElementById('removeImage');
+  const removeAllBtn = document.getElementById('removeAllImages');
 
   fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('画像は5MB以下のものを選択してください。');
+    const remaining = MAX_IMAGES - selectedImages.length;
+    if (files.length > remaining) {
+      alert(`画像は最大${MAX_IMAGES}枚までです。あと${remaining}枚選択できます。`);
       fileInput.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
-      const [, base64] = dataUrl.split(',');
-      selectedImageBase64 = base64;
-      selectedImageMediaType = file.type || 'image/jpeg';
-      previewImg.src = dataUrl;
-      preview.classList.add('show');
-    };
-    reader.readAsDataURL(file);
+    for (const file of files) {
+      if (file.size > 20 * 1024 * 1024) {
+        alert(`「${file.name}」は20MBを超えています。スキップします。`);
+        continue;
+      }
+      processImageFile(file);
+    }
+    fileInput.value = '';
   });
 
-  removeBtn.addEventListener('click', () => {
-    fileInput.value = '';
-    selectedImageBase64 = null;
-    selectedImageMediaType = null;
-    preview.classList.remove('show');
-    previewImg.src = '';
+  removeAllBtn.addEventListener('click', () => {
+    selectedImages = [];
+    renderImagePreviews();
   });
+}
+
+function processImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      if (selectedImages.length >= MAX_IMAGES) return;
+      const resized = resizeImageForInstagram(img);
+      const [, base64] = resized.dataUrl.split(',');
+      selectedImages.push({ base64, mediaType: 'image/jpeg', dataUrl: resized.dataUrl });
+      renderImagePreviews();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage(index) {
+  selectedImages.splice(index, 1);
+  renderImagePreviews();
+}
+
+function renderImagePreviews() {
+  const area = document.getElementById('imagePreviewArea');
+  const grid = document.getElementById('imagePreviewGrid');
+  const countEl = document.getElementById('imageCount');
+  const picker = document.getElementById('imagePicker');
+
+  if (selectedImages.length === 0) {
+    area.classList.remove('show');
+    picker.classList.remove('hidden');
+    return;
+  }
+
+  area.classList.add('show');
+  countEl.textContent = `${selectedImages.length}/${MAX_IMAGES}枚`;
+
+  if (selectedImages.length >= MAX_IMAGES) {
+    picker.classList.add('hidden');
+  } else {
+    picker.classList.remove('hidden');
+  }
+
+  grid.innerHTML = selectedImages.map((img, i) => `
+    <div class="image-thumb">
+      <img src="${img.dataUrl}" alt="画像${i + 1}" />
+      <button class="image-thumb-remove" onclick="removeImage(${i})">✕</button>
+      <span class="image-thumb-num">${i + 1}</span>
+    </div>
+  `).join('');
 }
 
 // --- メモ文字数カウンター ---
@@ -163,6 +208,34 @@ function deleteMemo(id) {
   renderSavedMemos();
 }
 
+// --- 画像リサイズ（Instagram最適化） ---
+const INSTA_MAX_SIZE = 1080;
+const INSTA_QUALITY = 0.85;
+
+function resizeImageForInstagram(img) {
+  let { width, height } = img;
+  let wasResized = false;
+
+  if (width > INSTA_MAX_SIZE || height > INSTA_MAX_SIZE) {
+    const ratio = Math.min(INSTA_MAX_SIZE / width, INSTA_MAX_SIZE / height);
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+    wasResized = true;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, width, height);
+
+  const dataUrl = canvas.toDataURL('image/jpeg', INSTA_QUALITY);
+  const sizeKB = Math.round((dataUrl.length * 3) / 4 / 1024);
+
+  return { dataUrl, width, height, wasResized, sizeKB };
+}
+
+
 // --- HTMLエスケープ ---
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -188,8 +261,7 @@ async function generateDraft() {
       body: JSON.stringify({
         memo,
         postType: selectedPostType,
-        imageBase64: selectedImageBase64,
-        imageMediaType: selectedImageMediaType,
+        images: selectedImages.map(img => ({ base64: img.base64, mediaType: img.mediaType })),
       }),
     });
 

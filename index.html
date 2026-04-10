@@ -40,15 +40,16 @@
 
     <!-- STEP 2: 画像 -->
     <div class="card">
-      <h2>🖼 STEP 2｜画像を選ぶ（任意）</h2>
-      <div class="image-picker">
-        <input type="file" id="imageInput" accept="image/*" />
+      <h2>🖼 STEP 2｜画像を選ぶ（任意・最大5枚）</h2>
+      <div class="image-picker" id="imagePicker">
+        <input type="file" id="imageInput" accept="image/*" multiple />
         <span class="pick-icon">📷</span>
-        <span class="pick-text">タップして画像を選ぶ<br><small>5MB以下のJPG・PNG・HEIC対応</small></span>
+        <span class="pick-text">タップして画像を選ぶ<br><small>JPG・PNG・HEIC対応（自動リサイズ）</small></span>
       </div>
-      <div class="image-preview" id="imagePreview">
-        <img id="previewImg" src="" alt="選択した画像" />
-        <button class="remove-image" id="removeImage">✕ 画像を削除</button>
+      <div class="image-preview-area" id="imagePreviewArea">
+        <div class="image-count" id="imageCount"></div>
+        <div class="image-preview-grid" id="imagePreviewGrid"></div>
+        <button class="remove-all-images" id="removeAllImages">✕ すべて削除</button>
       </div>
     </div>
 

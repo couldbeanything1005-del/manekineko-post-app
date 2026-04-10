@@ -137,7 +137,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { memo, postType, imageBase64, imageMediaType } = JSON.parse(event.body);
+    const { memo, postType, images, imageBase64, imageMediaType } = JSON.parse(event.body);
 
     if (!memo) {
       return { statusCode: 400, body: JSON.stringify({ error: 'メモが入力されていません' }) };
@@ -146,12 +146,22 @@ exports.handler = async (event) => {
     const systemPrompt = postType === 'diary' ? SYSTEM_DIARY : SYSTEM_SERVICE;
 
     const userContent = [];
-    if (imageBase64 && imageMediaType) {
+
+    // 複数画像対応（後方互換: 旧形式の単一画像もサポート）
+    if (images && images.length > 0) {
+      for (const img of images) {
+        userContent.push({
+          type: 'image',
+          source: { type: 'base64', media_type: img.mediaType, data: img.base64 }
+        });
+      }
+    } else if (imageBase64 && imageMediaType) {
       userContent.push({
         type: 'image',
         source: { type: 'base64', media_type: imageMediaType, data: imageBase64 }
       });
     }
+
     userContent.push({
       type: 'text',
       text: `以下のメモをもとにInstagram投稿の下書きを作成してください。\n\nメモ：${memo}\n\n【重要】上記のスタイルガイドを厳守し、フッターとハッシュタグは必ず末尾に付けてください。`
