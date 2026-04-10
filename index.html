@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>まねきねこ投稿アプリ</title>
+  <meta name="description" content="Instagram投稿の下書きを自動作成します" />
+  <meta name="theme-color" content="#e8732a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="まねきねこ" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <header>
+    <h1>🐾 まねきねこ投稿アプリ</h1>
+    <p>Instagram投稿の下書きを自動作成</p>
+  </header>
+
+  <main>
+
+    <!-- STEP 1: 投稿タイプ -->
+    <div class="card">
+      <h2>📌 STEP 1｜投稿の種類を選ぶ</h2>
+      <div class="type-selector">
+        <button class="type-btn" data-type="diary">
+          <span class="emoji">📔</span>
+          <span class="label">日常・日記</span>
+          <span class="desc">今日あったこと・気づき</span>
+        </button>
+        <button class="type-btn" data-type="service">
+          <span class="emoji">🚕</span>
+          <span class="label">サービス紹介</span>
+          <span class="desc">料金・使い方・Q&Aなど</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: 画像 -->
+    <div class="card">
+      <h2>🖼 STEP 2｜画像を選ぶ（任意）</h2>
+      <div class="image-picker">
+        <input type="file" id="imageInput" accept="image/*" />
+        <span class="pick-icon">📷</span>
+        <span class="pick-text">タップして画像を選ぶ<br><small>5MB以下のJPG・PNG・HEIC対応</small></span>
+      </div>
+      <div class="image-preview" id="imagePreview">
+        <img id="previewImg" src="" alt="選択した画像" />
+        <button class="remove-image" id="removeImage">✕ 画像を削除</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: メモ -->
+    <div class="card">
+      <h2>✏️ STEP 3｜投稿のメモを入力</h2>
+      <textarea
+        id="memo"
+        placeholder="例）今日は瀬戸市の方を通院送迎した。久しぶりの外出で嬉しそうだった。待合室でも話が弾んだ。"
+      ></textarea>
+      <div class="memo-actions">
+        <span class="char-info" id="charCounter">0文字</span>
+        <button class="btn-save-memo" id="saveMemoBtn">💾 メモを保存</button>
+      </div>
+    </div>
+
+    <!-- 保存済みメモ一覧 -->
+    <div class="card saved-memos-card" id="savedMemosCard">
+      <h2>📂 保存済みメモ</h2>
+      <div id="savedMemosList"></div>
+    </div>
+
+    <!-- エラー表示 -->
+    <div class="error-msg" id="errorMsg"></div>
+
+    <!-- 生成ボタン -->
+    <button class="btn-generate" id="generateBtn">
+      🐾 下書きを作成する
+    </button>
+
+    <!-- ローディング -->
+    <div class="loading" id="loading">
+      <div class="loading-spinner"></div>
+      <p>下書きを作成しています…<br><small>少々お待ちください</small></p>
+    </div>
+
+    <!-- 結果 -->
+    <div class="card result-card" id="resultCard">
+      <h2>📝 下書きができました！</h2>
+      <div class="draft-text" id="draftText"></div>
+      <div class="result-actions">
+        <button class="btn-copy" id="copyBtn">📋 コピーする</button>
+        <button class="btn-retry" id="retryBtn">🔄 作り直す</button>
+      </div>
+    </div>
+
+    <p class="footer-note">福祉タクシーまねきねこ｜投稿下書きアプリ</p>
+
+  </main>
+
+  <script src="/app.js"></script>
+
+</body>
+</html>
