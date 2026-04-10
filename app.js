@@ -2,18 +2,23 @@
 let selectedPostType = 'diary';
 const MAX_IMAGES = 5;
 let selectedImages = []; // [{ base64, mediaType, dataUrl }]
-let cachedMemos = [];    // サーバーから取得したメモのキャッシュ
+let cachedMemos = [];
+let cachedDrafts = [];
+let currentDraftText = ''; // 現在表示中の下書きテキスト
 
 // --- 初期化 ---
 document.addEventListener('DOMContentLoaded', () => {
   initTypeSelector();
   initImagePicker();
   initMemoCounter();
+  initDraftEditor();
   document.getElementById('generateBtn').addEventListener('click', generateDraft);
   document.getElementById('copyBtn').addEventListener('click', copyDraft);
   document.getElementById('retryBtn').addEventListener('click', resetForm);
   document.getElementById('saveMemoBtn').addEventListener('click', saveMemo);
+  document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
   renderSavedMemos();
+  renderSavedDrafts();
 });
 
 // --- 投稿タイプ選択 ---
@@ -121,7 +126,49 @@ function initMemoCounter() {
   });
 }
 
-// --- メモ保存（サーバー） ---
+// =============================================
+// 下書き編集機能
+// =============================================
+
+function initDraftEditor() {
+  const editBtn = document.getElementById('editDraftBtn');
+  const doneBtn = document.getElementById('editDoneBtn');
+  const cancelBtn = document.getElementById('editCancelBtn');
+  const editTextarea = document.getElementById('draftEditText');
+  const editCounter = document.getElementById('draftEditCounter');
+
+  editBtn.addEventListener('click', () => {
+    // 表示→編集モードに切り替え
+    editTextarea.value = currentDraftText;
+    editCounter.textContent = currentDraftText.length;
+    document.getElementById('draftViewMode').style.display = 'none';
+    document.getElementById('draftEditMode').style.display = 'block';
+    editTextarea.focus();
+  });
+
+  editTextarea.addEventListener('input', () => {
+    editCounter.textContent = editTextarea.value.length;
+  });
+
+  doneBtn.addEventListener('click', () => {
+    // 編集内容を確定
+    currentDraftText = editTextarea.value;
+    document.getElementById('draftText').textContent = currentDraftText;
+    document.getElementById('draftEditMode').style.display = 'none';
+    document.getElementById('draftViewMode').style.display = 'block';
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    // キャンセル→元に戻す
+    document.getElementById('draftEditMode').style.display = 'none';
+    document.getElementById('draftViewMode').style.display = 'block';
+  });
+}
+
+// =============================================
+// メモ保存・一覧（サーバー）
+// =============================================
+
 async function saveMemo() {
   const memoText = document.getElementById('memo').value.trim();
   if (!memoText) {
@@ -158,24 +205,20 @@ async function saveMemo() {
   }
 }
 
-// --- メモ一覧をサーバーから取得 ---
 async function fetchSavedMemos() {
   const res = await fetch('/api/memos');
   if (!res.ok) throw new Error('取得失敗');
   return await res.json();
 }
 
-// --- 保存済みメモ表示 ---
 async function renderSavedMemos() {
   const card = document.getElementById('savedMemosCard');
   const list = document.getElementById('savedMemosList');
 
-  // まずキャッシュがあれば即表示
   if (cachedMemos.length > 0) {
     card.classList.add('show');
     list.innerHTML = buildMemoListHtml(cachedMemos);
   } else {
-    card.classList.add('show');
     list.innerHTML = '<div class="memo-loading">読み込み中...</div>';
   }
 
@@ -191,7 +234,6 @@ async function renderSavedMemos() {
     card.classList.add('show');
     list.innerHTML = buildMemoListHtml(memos);
   } catch {
-    // サーバー取得失敗時はキャッシュのまま表示
     if (cachedMemos.length === 0) {
       card.classList.remove('show');
     }
@@ -214,7 +256,6 @@ function buildMemoListHtml(memos) {
   `).join('');
 }
 
-// --- メモ読み込み ---
 function loadMemo(id) {
   const memo = cachedMemos.find(m => m.id === id);
   if (!memo) return;
@@ -222,18 +263,15 @@ function loadMemo(id) {
   document.getElementById('memo').value = memo.text;
   document.getElementById('charCounter').textContent = `${memo.text.length}文字`;
 
-  // 投稿タイプも復元
   const buttons = document.querySelectorAll('.type-btn');
   buttons.forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.type === memo.type);
   });
   selectedPostType = memo.type;
 
-  // 上にスクロール
   document.getElementById('memo').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-// --- メモ削除（サーバー） ---
 async function deleteMemo(id) {
   if (!confirm('このメモを削除しますか？')) return;
 
@@ -250,7 +288,117 @@ async function deleteMemo(id) {
   }
 }
 
-// --- 画像リサイズ（Instagram最適化） ---
+// =============================================
+// 下書き保存・一覧（サーバー）
+// =============================================
+
+async function saveDraft() {
+  if (!currentDraftText) return;
+
+  const btn = document.getElementById('saveDraftBtn');
+  btn.textContent = '保存中...';
+  btn.disabled = true;
+
+  const newDraft = {
+    id: Date.now(),
+    text: currentDraftText,
+    type: selectedPostType,
+    date: new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+  };
+
+  try {
+    const res = await fetch('/api/drafts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ draft: newDraft })
+    });
+    if (!res.ok) throw new Error('保存失敗');
+    btn.textContent = '✅ 保存しました！';
+    await renderSavedDrafts();
+  } catch {
+    alert('保存に失敗しました。もう一度お試しください。');
+    btn.textContent = '💾 下書きを保存する';
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = '💾 下書きを保存する'; }, 2000);
+  }
+}
+
+async function fetchSavedDrafts() {
+  const res = await fetch('/api/drafts');
+  if (!res.ok) throw new Error('取得失敗');
+  return await res.json();
+}
+
+async function renderSavedDrafts() {
+  const card = document.getElementById('savedDraftsCard');
+  const list = document.getElementById('savedDraftsList');
+
+  try {
+    const drafts = await fetchSavedDrafts();
+    cachedDrafts = drafts;
+
+    if (drafts.length === 0) {
+      card.classList.remove('show');
+      return;
+    }
+
+    card.classList.add('show');
+    list.innerHTML = buildDraftListHtml(drafts);
+  } catch {
+    if (cachedDrafts.length === 0) {
+      card.classList.remove('show');
+    }
+  }
+}
+
+function buildDraftListHtml(drafts) {
+  return drafts.map(draft => `
+    <div class="memo-item" data-id="${draft.id}">
+      <div class="memo-item-header">
+        <span class="memo-item-date">${draft.date}</span>
+        <span class="memo-item-type">${draft.type === 'diary' ? '📔 日常・日記' : '🚕 サービス紹介'}</span>
+      </div>
+      <div class="memo-item-text">${escapeHtml(draft.text)}</div>
+      <div class="memo-item-actions">
+        <button class="btn-load-memo" onclick="copyDraftFromList(${draft.id})">📋 コピー</button>
+        <button class="btn-delete-memo" onclick="deleteDraft(${draft.id})">🗑 削除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function copyDraftFromList(id) {
+  const draft = cachedDrafts.find(d => d.id === id);
+  if (!draft) return;
+  try {
+    await navigator.clipboard.writeText(draft.text);
+    alert('コピーしました！');
+  } catch {
+    alert('コピーできませんでした。');
+  }
+}
+
+async function deleteDraft(id) {
+  if (!confirm('この下書きを削除しますか？')) return;
+
+  try {
+    const res = await fetch('/api/drafts', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if (!res.ok) throw new Error('削除失敗');
+    await renderSavedDrafts();
+  } catch {
+    alert('削除に失敗しました。もう一度お試しください。');
+  }
+}
+
+// =============================================
+// 画像リサイズ
+// =============================================
+
 const INSTA_MAX_SIZE = 1080;
 const INSTA_QUALITY = 0.85;
 
@@ -278,7 +426,10 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// --- 下書き生成 ---
+// =============================================
+// 下書き生成
+// =============================================
+
 async function generateDraft() {
   const memo = document.getElementById('memo').value.trim();
 
@@ -316,7 +467,10 @@ async function generateDraft() {
   }
 }
 
-// --- UI操作 ---
+// =============================================
+// UI操作
+// =============================================
+
 function setLoading(isLoading) {
   const btn = document.getElementById('generateBtn');
   const loadingEl = document.getElementById('loading');
@@ -326,11 +480,22 @@ function setLoading(isLoading) {
 }
 
 function showResult(draft) {
+  currentDraftText = draft;
+
+  // 表示モードで開く
+  document.getElementById('draftViewMode').style.display = 'block';
+  document.getElementById('draftEditMode').style.display = 'none';
+
   const resultCard = document.getElementById('resultCard');
   const draftText = document.getElementById('draftText');
   draftText.textContent = draft;
   resultCard.classList.add('show');
   resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // 保存ボタンをリセット
+  const saveBtn = document.getElementById('saveDraftBtn');
+  saveBtn.textContent = '💾 下書きを保存する';
+  saveBtn.disabled = false;
 
   const copyBtn = document.getElementById('copyBtn');
   copyBtn.textContent = '📋 コピーする';
@@ -351,9 +516,8 @@ function hideError() {
   document.getElementById('errorMsg').classList.remove('show');
 }
 
-// --- コピー ---
 async function copyDraft() {
-  const text = document.getElementById('draftText').textContent;
+  const text = currentDraftText;
   try {
     await navigator.clipboard.writeText(text);
     const btn = document.getElementById('copyBtn');
@@ -368,9 +532,9 @@ async function copyDraft() {
   }
 }
 
-// --- やり直し ---
 function resetForm() {
   hideResult();
   hideError();
+  currentDraftText = '';
   document.getElementById('memo').scrollIntoView({ behavior: 'smooth' });
 }

@@ -540,6 +540,132 @@ textarea::placeholder {
   background: var(--primary-pale);
 }
 
+/* 下書き編集ボタン */
+.btn-edit-draft {
+  padding: 12px;
+  background: var(--white);
+  color: #1976d2;
+  border: 2px solid #1976d2;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-edit-draft:hover {
+  background: #e3f2fd;
+}
+
+/* 下書き保存ボタン */
+.btn-save-draft {
+  padding: 12px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+
+.btn-save-draft:hover:not(:disabled) {
+  background: var(--primary-light);
+}
+
+.btn-save-draft:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* 編集モードのテキストエリア */
+.draft-edit-textarea {
+  width: 100%;
+  min-height: 300px;
+  padding: 14px;
+  border: 2px solid #1976d2;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.8;
+  resize: vertical;
+  background: #f0f7ff;
+  color: var(--text);
+}
+
+.draft-edit-textarea:focus {
+  outline: none;
+  border-color: #1565c0;
+}
+
+.draft-edit-char {
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+/* 編集確定・キャンセルボタン */
+.btn-edit-done {
+  padding: 12px;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-edit-done:hover {
+  background: #1565c0;
+}
+
+.btn-edit-cancel {
+  padding: 12px;
+  background: var(--white);
+  color: var(--text-light);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-edit-cancel:hover {
+  background: var(--bg);
+}
+
+/* 保存済み下書き一覧 */
+.saved-drafts-card {
+  display: none;
+}
+
+.saved-drafts-card.show {
+  display: block;
+}
+
 /* Error */
 .error-msg {
   background: #fdecea;

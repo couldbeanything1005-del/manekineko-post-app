@@ -89,11 +89,35 @@
     <!-- 結果 -->
     <div class="card result-card" id="resultCard">
       <h2>📝 下書きができました！</h2>
-      <div class="draft-text" id="draftText"></div>
-      <div class="result-actions">
-        <button class="btn-copy" id="copyBtn">📋 コピーする</button>
-        <button class="btn-retry" id="retryBtn">🔄 作り直す</button>
+
+      <!-- 表示モード -->
+      <div id="draftViewMode">
+        <div class="draft-text" id="draftText"></div>
+        <div class="result-actions">
+          <button class="btn-edit-draft" id="editDraftBtn">✏️ 編集する</button>
+          <button class="btn-copy" id="copyBtn">📋 コピーする</button>
+        </div>
+        <div class="result-actions" style="margin-top: 8px;">
+          <button class="btn-save-draft" id="saveDraftBtn">💾 下書きを保存する</button>
+          <button class="btn-retry" id="retryBtn">🔄 作り直す</button>
+        </div>
       </div>
+
+      <!-- 編集モード -->
+      <div id="draftEditMode" style="display:none;">
+        <textarea class="draft-edit-textarea" id="draftEditText"></textarea>
+        <div class="draft-edit-char"><span id="draftEditCounter">0</span>文字</div>
+        <div class="result-actions">
+          <button class="btn-edit-done" id="editDoneBtn">✅ 編集完了</button>
+          <button class="btn-edit-cancel" id="editCancelBtn">✕ キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 保存済み下書き一覧 -->
+    <div class="card saved-drafts-card" id="savedDraftsCard">
+      <h2>💾 保存済み下書き</h2>
+      <div id="savedDraftsList"></div>
     </div>
 
     <p class="footer-note">福祉タクシーまねきねこ｜投稿下書きアプリ</p>
