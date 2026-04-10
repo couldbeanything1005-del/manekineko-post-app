@@ -5,46 +5,35 @@ exports.handler = async (event) => {
 
   let store;
   try {
-    store = getStore('drafts');
+    store = getStore({
+      name: 'drafts',
+      siteID: process.env.SITE_ID,
+      token: process.env.NETLIFY_AUTH_TOKEN,
+    });
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'ストレージ初期化エラー: ' + e.message }) };
   }
 
   try {
-    // 一覧取得
     if (event.httpMethod === 'GET') {
       let data;
-      try {
-        data = await store.get('list', { type: 'json' });
-      } catch (e) {
-        data = null;
-      }
+      try { data = await store.get('list', { type: 'json' }); } catch { data = null; }
       return { statusCode: 200, headers, body: JSON.stringify(data || []) };
     }
 
-    // 保存
     if (event.httpMethod === 'POST') {
       const { draft } = JSON.parse(event.body);
       let drafts = [];
-      try {
-        drafts = await store.get('list', { type: 'json' }) || [];
-      } catch (e) {
-        drafts = [];
-      }
+      try { drafts = await store.get('list', { type: 'json' }) || []; } catch { drafts = []; }
       drafts.unshift(draft);
       await store.setJSON('list', drafts);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
-    // 削除
     if (event.httpMethod === 'DELETE') {
       const { id } = JSON.parse(event.body);
       let drafts = [];
-      try {
-        drafts = await store.get('list', { type: 'json' }) || [];
-      } catch (e) {
-        drafts = [];
-      }
+      try { drafts = await store.get('list', { type: 'json' }) || []; } catch { drafts = []; }
       const filtered = drafts.filter(d => d.id !== id);
       await store.setJSON('list', filtered);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };

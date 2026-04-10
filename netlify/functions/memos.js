@@ -5,46 +5,35 @@ exports.handler = async (event) => {
 
   let store;
   try {
-    store = getStore('memos');
+    store = getStore({
+      name: 'memos',
+      siteID: process.env.SITE_ID,
+      token: process.env.NETLIFY_AUTH_TOKEN,
+    });
   } catch (e) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'ストレージ初期化エラー: ' + e.message }) };
   }
 
   try {
-    // 一覧取得
     if (event.httpMethod === 'GET') {
       let data;
-      try {
-        data = await store.get('list', { type: 'json' });
-      } catch (e) {
-        data = null;
-      }
+      try { data = await store.get('list', { type: 'json' }); } catch { data = null; }
       return { statusCode: 200, headers, body: JSON.stringify(data || []) };
     }
 
-    // 保存
     if (event.httpMethod === 'POST') {
       const { memo } = JSON.parse(event.body);
       let memos = [];
-      try {
-        memos = await store.get('list', { type: 'json' }) || [];
-      } catch (e) {
-        memos = [];
-      }
+      try { memos = await store.get('list', { type: 'json' }) || []; } catch { memos = []; }
       memos.unshift(memo);
       await store.setJSON('list', memos);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
-    // 削除
     if (event.httpMethod === 'DELETE') {
       const { id } = JSON.parse(event.body);
       let memos = [];
-      try {
-        memos = await store.get('list', { type: 'json' }) || [];
-      } catch (e) {
-        memos = [];
-      }
+      try { memos = await store.get('list', { type: 'json' }) || []; } catch { memos = []; }
       const filtered = memos.filter(m => m.id !== id);
       await store.setJSON('list', filtered);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
