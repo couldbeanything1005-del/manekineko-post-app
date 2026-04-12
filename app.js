@@ -531,7 +531,6 @@ function resetForm() {
   hideResult();
   hideError();
   currentDraftText = '';
-  document.getElementById('hashtagResult').style.display = 'none';
   document.getElementById('memo').scrollIntoView({ behavior: 'smooth' });
 }
 

@@ -196,6 +196,36 @@ exports.generate = onRequest(
         return;
       }
 
+      // 季節の投稿アイデアモード
+      if (mode === 'seasonal') {
+        const today = new Date().toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' });
+        const response = await client.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 800,
+          system: `あなたは福祉タクシーまねきねこ（愛知県瀬戸市、代表：小林 圭介、介護福祉士）のInstagram投稿のアイデアを提案するアシスタントです。
+季節・時期に合った、福祉タクシーらしい投稿アイデアを3つ提案してください。
+
+【形式】
+1.【タイトル】
+内容の説明（1〜2文）
+
+2.【タイトル】
+内容の説明（1〜2文）
+
+3.【タイトル】
+内容の説明（1〜2文）
+
+【条件】
+- 日常・日記系とサービス紹介系を混ぜる
+- 季節のイベント・気候・行事に関連づける
+- 福祉タクシーとしての視点・エピソードを活かす
+- タイトルは具体的で投稿に使えるもの`,
+          messages: [{ role: 'user', content: `今日は${today}です。この時期にぴったりな投稿アイデアを3つ提案してください。` }],
+        });
+        res.status(200).json({ suggestions: response.content[0].text });
+        return;
+      }
+
       // 通常の下書き生成
       if (!memo) {
         res.status(400).json({ error: 'メモが入力されていません' });
