@@ -18,8 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('saveMemoBtn').addEventListener('click', saveMemo);
   document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
   document.getElementById('refreshBtn').addEventListener('click', refreshAll);
-  document.getElementById('hashtagBtn').addEventListener('click', generateHashtags);
-  document.getElementById('copyHashtagBtn').addEventListener('click', copyHashtags);
   document.getElementById('instagramBtn').addEventListener('click', openInstagram);
   document.getElementById('seasonalBtn').addEventListener('click', generateSeasonalIdeas);
   document.querySelectorAll('.btn-tone').forEach(btn => {
@@ -188,21 +186,13 @@ async function saveMemo() {
   btn.textContent = '保存中...';
   btn.disabled = true;
 
-  const newMemo = {
-    id: Date.now(),
-    text: memoText,
-    type: selectedPostType,
-    date: new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-  };
-
   try {
-    const res = await fetch('/api/memos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memo: newMemo })
+    await db.collection('memos').add({
+      text: memoText,
+      type: selectedPostType,
+      date: new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
-    const resData = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(resData.error || `HTTP ${res.status}`);
     btn.textContent = '✅ 保存しました';
     await renderSavedMemos();
   } catch (e) {
@@ -215,9 +205,8 @@ async function saveMemo() {
 }
 
 async function fetchSavedMemos() {
-  const res = await fetch('/api/memos');
-  if (!res.ok) throw new Error('取得失敗');
-  return await res.json();
+  const snapshot = await db.collection('memos').orderBy('createdAt', 'desc').get();
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 async function renderSavedMemos() {
@@ -258,8 +247,8 @@ function buildMemoListHtml(memos) {
       </div>
       <div class="memo-item-text">${escapeHtml(memo.text)}</div>
       <div class="memo-item-actions">
-        <button class="btn-load-memo" onclick="loadMemo(${memo.id})">📂 読み込む</button>
-        <button class="btn-delete-memo" onclick="deleteMemo(${memo.id})">🗑 削除</button>
+        <button class="btn-load-memo" onclick="loadMemo('${memo.id}')">📂 読み込む</button>
+        <button class="btn-delete-memo" onclick="deleteMemo('${memo.id}')">🗑 削除</button>
       </div>
     </div>
   `).join('');
@@ -285,12 +274,7 @@ async function deleteMemo(id) {
   if (!confirm('このメモを削除しますか？')) return;
 
   try {
-    const res = await fetch('/api/memos', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    if (!res.ok) throw new Error('削除失敗');
+    await db.collection('memos').doc(id).delete();
     await renderSavedMemos();
   } catch {
     alert('削除に失敗しました。もう一度お試しください。');
@@ -308,24 +292,17 @@ async function saveDraft() {
   btn.textContent = '保存中...';
   btn.disabled = true;
 
-  const newDraft = {
-    id: Date.now(),
-    text: currentDraftText,
-    type: selectedPostType,
-    date: new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-  };
-
   try {
-    const res = await fetch('/api/drafts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ draft: newDraft })
+    await db.collection('drafts').add({
+      text: currentDraftText,
+      type: selectedPostType,
+      date: new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
-    if (!res.ok) throw new Error('保存失敗');
     btn.textContent = '✅ 保存しました！';
     await renderSavedDrafts();
-  } catch {
-    alert('保存に失敗しました。もう一度お試しください。');
+  } catch (e) {
+    alert('保存に失敗しました: ' + e.message);
     btn.textContent = '💾 下書きを保存する';
   } finally {
     btn.disabled = false;
@@ -334,9 +311,8 @@ async function saveDraft() {
 }
 
 async function fetchSavedDrafts() {
-  const res = await fetch('/api/drafts');
-  if (!res.ok) throw new Error('取得失敗');
-  return await res.json();
+  const snapshot = await db.collection('drafts').orderBy('createdAt', 'desc').get();
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 async function renderSavedDrafts() {
@@ -370,9 +346,9 @@ function buildDraftListHtml(drafts) {
       </div>
       <div class="memo-item-text">${escapeHtml(draft.text)}</div>
       <div class="memo-item-actions">
-        <button class="btn-load-memo" onclick="copyDraftFromList(${draft.id})">📋 コピー</button>
-        <button class="btn-instagram-list" onclick="openInstagramFromList(${draft.id})">📸 Instagram</button>
-        <button class="btn-delete-memo" onclick="deleteDraft(${draft.id})">🗑 削除</button>
+        <button class="btn-load-memo" onclick="copyDraftFromList('${draft.id}')">📋 コピー</button>
+        <button class="btn-instagram-list" onclick="openInstagramFromList('${draft.id}')">📸 Instagram</button>
+        <button class="btn-delete-memo" onclick="deleteDraft('${draft.id}')">🗑 削除</button>
       </div>
     </div>
   `).join('');
@@ -407,12 +383,7 @@ async function deleteDraft(id) {
   if (!confirm('この下書きを削除しますか？')) return;
 
   try {
-    const res = await fetch('/api/drafts', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    if (!res.ok) throw new Error('削除失敗');
+    await db.collection('drafts').doc(id).delete();
     await renderSavedDrafts();
   } catch {
     alert('削除に失敗しました。もう一度お試しください。');
@@ -594,45 +565,6 @@ async function adjustTone(toneInstruction) {
   }
 }
 
-// =============================================
-// ハッシュタグ生成
-// =============================================
-
-async function generateHashtags() {
-  const memo = document.getElementById('memo').value.trim();
-  const btn = document.getElementById('hashtagBtn');
-  btn.textContent = '生成中...';
-  btn.disabled = true;
-
-  try {
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'hashtags', postType: selectedPostType, memo: memo || 'まねきねこ 福祉タクシー' })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    document.getElementById('hashtagText').textContent = data.hashtags;
-    document.getElementById('hashtagResult').style.display = 'block';
-  } catch (e) {
-    alert('ハッシュタグの生成に失敗しました: ' + e.message);
-  } finally {
-    btn.textContent = '＃ ハッシュタグを生成';
-    btn.disabled = false;
-  }
-}
-
-async function copyHashtags() {
-  const text = document.getElementById('hashtagText').textContent;
-  try {
-    await navigator.clipboard.writeText(text);
-    const btn = document.getElementById('copyHashtagBtn');
-    btn.textContent = '✅ コピーしました！';
-    setTimeout(() => { btn.textContent = '📋 ハッシュタグをコピー'; }, 2000);
-  } catch {
-    alert('コピーできませんでした。');
-  }
-}
 
 // =============================================
 // Instagramで開く

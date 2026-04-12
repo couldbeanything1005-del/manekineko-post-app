@@ -125,12 +125,7 @@
           <button class="btn-copy" id="copyBtn">📋 コピーする</button>
         </div>
         <div class="result-actions" style="margin-top: 8px;">
-          <button class="btn-hashtag" id="hashtagBtn">＃ ハッシュタグを生成</button>
           <button class="btn-instagram" id="instagramBtn">📸 Instagramで開く</button>
-        </div>
-        <div class="hashtag-result" id="hashtagResult" style="display:none">
-          <div class="hashtag-text" id="hashtagText"></div>
-          <button class="btn-copy-hashtag" id="copyHashtagBtn">📋 ハッシュタグをコピー</button>
         </div>
         <div class="result-actions" style="margin-top: 8px;">
           <button class="btn-save-draft" id="saveDraftBtn">💾 下書きを保存する</button>
@@ -159,6 +154,20 @@
 
   </main>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyAkmiEdhTvJG1JofKPYQSsjsMdWAq5ZQzU",
+      authDomain: "manekineko-post-app.firebaseapp.com",
+      projectId: "manekineko-post-app",
+      storageBucket: "manekineko-post-app.firebasestorage.app",
+      messagingSenderId: "906644012322",
+      appId: "1:906644012322:web:b7dc5a7b735d4f9f7b797b"
+    });
+    window.db = firebase.firestore();
+  </script>
   <script src="/app.js"></script>
 
 </body>

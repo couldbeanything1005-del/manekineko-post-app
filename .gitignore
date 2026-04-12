@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+functions/node_modules/
+manekineko-post-app/functions/node_modules/
+
+# Firebase
+.firebase/
+.firebaserc
+
+# Mac
+.DS_Store
+*/.DS_Store
+
+# Environment / Secrets
+.env
+.env.local
+*.secret
