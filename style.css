@@ -923,6 +923,120 @@ textarea::placeholder {
   margin-top: 24px;
 }
 
+/* 投稿計画 */
+.plan-card { margin-top: 12px; }
+
+.plan-desc {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.plan-form { display: flex; flex-direction: column; gap: 12px; }
+
+.plan-label {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.plan-textarea {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  background: white;
+}
+
+.plan-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.plan-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  font-family: inherit;
+}
+
+.btn-plan {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #4a90d9, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-plan:disabled { opacity: 0.6; }
+
+.plan-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+.plan-result { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+.plan-item {
+  background: var(--primary-pale);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.plan-item-title {
+  font-weight: bold;
+  font-size: 14px;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.plan-item-body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.7;
+  margin-bottom: 10px;
+}
+
+.btn-use-plan {
+  padding: 7px 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.plan-raw {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text);
+  background: var(--primary-pale);
+  border-radius: 10px;
+  padding: 14px;
+}
+
 @media (max-width: 400px) {
   header h1 { font-size: 16px; }
   .result-actions { grid-template-columns: 1fr; }

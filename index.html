@@ -150,6 +150,45 @@
       <div id="savedDraftsList"></div>
     </div>
 
+    <!-- 投稿計画 -->
+    <div class="card plan-card">
+      <h2>📅 投稿計画を作成</h2>
+      <p class="plan-desc">保存済みの下書き履歴＋最近の投稿テーマをもとに、次の投稿スケジュールを提案します。</p>
+
+      <div class="plan-form">
+        <label class="plan-label">最近Instagramに投稿したテーマ（任意）</label>
+        <textarea id="planManualHistory" class="plan-textarea" placeholder="例）先週は春の外出について日記投稿、その前は料金案内を投稿しました。"></textarea>
+
+        <div class="plan-options">
+          <div class="plan-option-group">
+            <label class="plan-label">期間</label>
+            <select id="planPeriod" class="plan-select">
+              <option value="1週間">1週間</option>
+              <option value="2週間" selected>2週間</option>
+              <option value="1ヶ月">1ヶ月</option>
+            </select>
+          </div>
+          <div class="plan-option-group">
+            <label class="plan-label">投稿頻度</label>
+            <select id="planFrequency" class="plan-select">
+              <option value="週2回">週2回</option>
+              <option value="週3回" selected>週3回</option>
+              <option value="週4回">週4回</option>
+              <option value="週5回">週5回</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn-plan" id="planBtn">📅 投稿計画を作成する</button>
+      </div>
+
+      <div class="plan-loading" id="planLoading" style="display:none">
+        <div class="loading-spinner"></div>
+        <p>計画を作成しています…</p>
+      </div>
+      <div class="plan-result" id="planResult"></div>
+    </div>
+
     <p class="footer-note">福祉タクシーまねきねこ｜投稿下書きアプリ</p>
 
   </main>

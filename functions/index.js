@@ -226,6 +226,53 @@ exports.generate = onRequest(
         return;
       }
 
+      // 投稿計画作成モード
+      if (mode === 'plan') {
+        const { recentDrafts, manualHistory, period, frequency } = req.body;
+        const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+
+        let historyText = '';
+        if (recentDrafts && recentDrafts.length > 0) {
+          historyText = 'アプリ内の最近の下書き履歴：\n' + recentDrafts.map((d, i) =>
+            `${i + 1}. [${d.type === 'diary' ? '日常・日記' : 'サービス紹介'}] ${d.text}…`
+          ).join('\n');
+        }
+        if (manualHistory) {
+          historyText += `\n\nInstagramに最近投稿したテーマ（本人入力）：\n${manualHistory}`;
+        }
+
+        const response = await client.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1200,
+          system: `あなたは福祉タクシーまねきねこ（愛知県瀬戸市）のInstagram投稿計画を作るアシスタントです。
+
+過去の投稿履歴をもとに、同じテーマが続かないようバランスよく投稿計画を作成してください。
+
+【ルール】
+- 日常・日記系（📔）とサービス紹介系（🚕）をバランスよく混ぜる
+- 過去に投稿済みのテーマは避ける
+- 季節・時期に合ったテーマを取り入れる
+- 各投稿に「タイトル案」と「メモのヒント」を添える
+
+【出力形式】（必ずこの形式で）
+1日目（月曜）📔 日常・日記
+タイトル案：【〇〇〇〇】
+メモのヒント：〜〜〜〜〜〜
+
+2日目（水曜）🚕 サービス紹介
+タイトル案：【〇〇〇〇】
+メモのヒント：〜〜〜〜〜〜
+
+（以降同様）`,
+          messages: [{
+            role: 'user',
+            content: `今日は${today}です。\n期間：${period || '2週間'}\n投稿頻度：${frequency || '週3回'}\n\n${historyText}\n\n上記をふまえて投稿計画を作成してください。`
+          }],
+        });
+        res.status(200).json({ plan: response.content[0].text });
+        return;
+      }
+
       // 通常の下書き生成
       if (!memo) {
         res.status(400).json({ error: 'メモが入力されていません' });

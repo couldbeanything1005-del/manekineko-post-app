@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('refreshBtn').addEventListener('click', refreshAll);
   document.getElementById('instagramBtn').addEventListener('click', openInstagram);
   document.getElementById('seasonalBtn').addEventListener('click', generateSeasonalIdeas);
+  document.getElementById('planBtn').addEventListener('click', generatePostingPlan);
   document.querySelectorAll('.btn-tone').forEach(btn => {
     btn.addEventListener('click', () => adjustTone(btn.dataset.tone));
   });
@@ -630,6 +631,81 @@ async function generateSeasonalIdeas() {
 }
 
 function useSeasonalIdea(text) {
+  document.getElementById('memo').value = text;
+  document.getElementById('charCounter').textContent = `${text.length}文字`;
+  document.getElementById('memo').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// =============================================
+// 投稿計画作成
+// =============================================
+
+async function generatePostingPlan() {
+  const btn = document.getElementById('planBtn');
+  const loadingEl = document.getElementById('planLoading');
+  const resultEl = document.getElementById('planResult');
+  const manualHistory = document.getElementById('planManualHistory').value.trim();
+  const period = document.getElementById('planPeriod').value;
+  const frequency = document.getElementById('planFrequency').value;
+
+  btn.disabled = true;
+  loadingEl.style.display = 'flex';
+  resultEl.innerHTML = '';
+
+  // Firestoreから最近の下書き履歴を取得
+  let recentDrafts = [];
+  try {
+    const snapshot = await db.collection('drafts').orderBy('createdAt', 'desc').limit(10).get();
+    recentDrafts = snapshot.docs.map(doc => ({
+      type: doc.data().type,
+      text: doc.data().text ? doc.data().text.substring(0, 80) : '',
+      date: doc.data().date || '',
+    }));
+  } catch {}
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'plan', recentDrafts, manualHistory, period, frequency }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    renderPlanResult(data.plan);
+  } catch (e) {
+    resultEl.innerHTML = `<div style="color:#c62828;font-size:13px">取得に失敗しました: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    loadingEl.style.display = 'none';
+  }
+}
+
+function renderPlanResult(planText) {
+  const resultEl = document.getElementById('planResult');
+  // 各投稿案をブロックに分割（番号付きで始まる行で区切る）
+  const blocks = planText.split(/\n(?=\d+日目|第\d+回|\d+\.)/).filter(b => b.trim());
+  if (blocks.length <= 1) {
+    // 分割できない場合はそのまま表示
+    resultEl.innerHTML = `<div class="plan-raw">${escapeHtml(planText).replace(/\n/g, '<br>')}</div>`;
+    return;
+  }
+  resultEl.innerHTML = blocks.map(block => {
+    const lines = block.trim().split('\n');
+    const title = lines[0];
+    const body = lines.slice(1).join('\n').trim();
+    // メモヒントを抽出
+    const memoMatch = body.match(/メモのヒント[：:]\s*(.+)/);
+    const memoHint = memoMatch ? memoMatch[1] : title;
+    return `
+      <div class="plan-item">
+        <div class="plan-item-title">${escapeHtml(title)}</div>
+        <div class="plan-item-body">${escapeHtml(body).replace(/\n/g, '<br>')}</div>
+        <button class="btn-use-plan" onclick="usePlanIdea('${escapeHtml(memoHint).replace(/'/g, "\\'")}')">このテーマでメモを書く</button>
+      </div>`;
+  }).join('');
+}
+
+function usePlanIdea(text) {
   document.getElementById('memo').value = text;
   document.getElementById('charCounter').textContent = `${text.length}文字`;
   document.getElementById('memo').scrollIntoView({ behavior: 'smooth', block: 'center' });
