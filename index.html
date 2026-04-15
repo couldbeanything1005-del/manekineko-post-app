@@ -193,6 +193,19 @@
 
   </main>
 
+  <!-- 保存済み下書き編集モーダル -->
+  <div class="modal-overlay" id="editDraftModal" style="display:none">
+    <div class="modal-content">
+      <h3 class="modal-title">✏️ 下書きを編集</h3>
+      <textarea class="modal-textarea" id="editDraftModalText"></textarea>
+      <div class="modal-char"><span id="editDraftModalCounter">0</span>文字</div>
+      <div class="modal-actions">
+        <button class="btn-modal-save" id="editDraftModalSave">💾 保存する</button>
+        <button class="btn-modal-cancel" id="editDraftModalCancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>

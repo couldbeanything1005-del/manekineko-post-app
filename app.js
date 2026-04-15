@@ -21,6 +21,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('instagramBtn').addEventListener('click', openInstagram);
   document.getElementById('seasonalBtn').addEventListener('click', generateSeasonalIdeas);
   document.getElementById('planBtn').addEventListener('click', generatePostingPlan);
+
+  // 保存済み下書き編集モーダル
+  document.getElementById('editDraftModalSave').addEventListener('click', saveEditedDraft);
+  document.getElementById('editDraftModalCancel').addEventListener('click', closeEditDraftModal);
+  document.getElementById('editDraftModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('editDraftModal')) closeEditDraftModal();
+  });
+  document.getElementById('editDraftModalText').addEventListener('input', (e) => {
+    document.getElementById('editDraftModalCounter').textContent = e.target.value.length;
+  });
   document.querySelectorAll('.btn-tone').forEach(btn => {
     btn.addEventListener('click', () => adjustTone(btn.dataset.tone));
   });
@@ -349,10 +359,51 @@ function buildDraftListHtml(drafts) {
       <div class="memo-item-actions">
         <button class="btn-load-memo" onclick="copyDraftFromList('${draft.id}')">📋 コピー</button>
         <button class="btn-instagram-list" onclick="openInstagramFromList('${draft.id}')">📸 Instagram</button>
+        <button class="btn-edit-saved" onclick="openEditDraftModal('${draft.id}')">✏️ 編集</button>
         <button class="btn-delete-memo" onclick="deleteDraft('${draft.id}')">🗑 削除</button>
       </div>
     </div>
   `).join('');
+}
+
+// --- 保存済み下書き編集モーダル ---
+let editingDraftId = null;
+
+function openEditDraftModal(id) {
+  const draft = cachedDrafts.find(d => d.id === id);
+  if (!draft) return;
+  editingDraftId = id;
+  const textarea = document.getElementById('editDraftModalText');
+  textarea.value = draft.text;
+  document.getElementById('editDraftModalCounter').textContent = draft.text.length;
+  document.getElementById('editDraftModal').style.display = 'flex';
+  textarea.focus();
+}
+
+function closeEditDraftModal() {
+  document.getElementById('editDraftModal').style.display = 'none';
+  editingDraftId = null;
+}
+
+async function saveEditedDraft() {
+  if (!editingDraftId) return;
+  const newText = document.getElementById('editDraftModalText').value;
+  const saveBtn = document.getElementById('editDraftModalSave');
+  saveBtn.textContent = '保存中...';
+  saveBtn.disabled = true;
+  try {
+    await db.collection('drafts').doc(editingDraftId).update({ text: newText });
+    // キャッシュも更新
+    const idx = cachedDrafts.findIndex(d => d.id === editingDraftId);
+    if (idx !== -1) cachedDrafts[idx].text = newText;
+    closeEditDraftModal();
+    await renderSavedDrafts();
+  } catch (e) {
+    alert('保存に失敗しました: ' + e.message);
+  } finally {
+    saveBtn.textContent = '💾 保存する';
+    saveBtn.disabled = false;
+  }
 }
 
 async function openInstagramFromList(id) {
